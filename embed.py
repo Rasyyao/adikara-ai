@@ -113,8 +113,8 @@ def _normalize(vectors: list) -> list[list[float]]:
     return (arr / norms).tolist()
 
 
-def _post_embed(model: str, texts: list[str], endpoint: str = "local") -> list[list[float]]:
-    base, api_key, key_var = _endpoint_config(endpoint)
+def _auth_headers(base: str, api_key: str | None, key_var: str) -> dict[str, str]:
+    """Header untuk Ollama. Kunci API hanya dikirim lewat https (atau ke localhost)."""
     headers = {"Content-Type": "application/json"}
     if api_key:
         host = urllib.parse.urlparse(base)
@@ -123,6 +123,12 @@ def _post_embed(model: str, texts: list[str], endpoint: str = "local") -> list[l
                 f"Kunci API ({key_var}) tidak dikirim lewat koneksi tanpa enkripsi ke {base}. "
                 f"Gunakan alamat https://.")
         headers["Authorization"] = f"Bearer {api_key}"     # never print or log this header
+    return headers
+
+
+def _post_embed(model: str, texts: list[str], endpoint: str = "local") -> list[list[float]]:
+    base, api_key, key_var = _endpoint_config(endpoint)
+    headers = _auth_headers(base, api_key, key_var)
     body = json.dumps({
         "model": model,
         "input": texts,

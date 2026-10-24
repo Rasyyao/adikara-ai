@@ -1,2 +1,5 @@
 numpy
 pytest
+psycopg[binary]
+pgvector
+boto3
