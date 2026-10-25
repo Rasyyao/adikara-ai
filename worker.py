@@ -87,7 +87,19 @@ REPLY_FAILED = "Maaf, balasan gagal dibuat. Coba kirim ulang pesan Anda."
 
 
 def _chat_config() -> tuple[str | None, str]:
-    return os.environ.get("CHAT_MODEL", "").strip() or None, os.environ.get("CHAT_ENDPOINT", "local").strip() or "local"
+    raw_model = os.environ.get("CHAT_MODEL", "").strip()
+    model = llm.resolve_model(raw_model) if raw_model else None
+    endpoint = os.environ.get("CHAT_ENDPOINT", "local").strip() or "local"
+    if model is None:
+        if os.environ.get("GEMINI_API", "").strip() or os.environ.get("GEMINI_API_KEY", "").strip():
+            return llm.DEFAULT_GEMINI_MODEL, "gemini"
+        if (
+            os.environ.get("OPEN_ROUTER", "").strip()
+            or os.environ.get("OPENROUTER_API_KEY", "").strip()
+            or os.environ.get("OPEN_ROUTER_API_KEY", "").strip()
+        ):
+            return llm.DEFAULT_DEEPSEEK_MODEL, "openrouter"
+    return model, endpoint
 
 
 def _save_reply(conn, chat_id: str, content: str, sources: list[str] | None = None) -> None:
@@ -121,8 +133,9 @@ def _process_chat_reply(conn, payload: dict, embed_model: str, embed_endpoint: s
            WHERE cm.chat_id = %s AND m.status = 'extracted' LIMIT 1""", (chat_id,)).fetchone()
     chunks = (store.retrieve(conn, chat_id, history[-1]["content"], CONTEXT_CHUNKS, embed_model, embed_endpoint)
               if ready else [])
+    web_results = prompt.search_web_context(history[-1]["content"]) if chat_model != "fake-chat" else []
 
-    answer = llm.chat(chat_model, prompt.build_messages(history, chunks, failed), chat_endpoint)
+    answer = llm.chat(chat_model, prompt.build_messages(history, chunks, failed, web_results=web_results), chat_endpoint)
     _save_reply(conn, chat_id, answer, [c["id"] for c in chunks])
 
 

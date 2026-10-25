@@ -1,0 +1,173 @@
+{
+  "title": "Pemrograman Dasar C#",
+  "nodes": [
+    {
+      "id": "n1",
+      "parent_id": null,
+      "label": "Pemrograman Dasar C#",
+      "text": "Tolong jelaskan gambaran umum mengenai seluruh materi Pemrograman Dasar C# mulai dari algoritma, struktur dasar program, hingga penggunaan array dan fungsi secara menyeluruh.",
+      "source": "test-modul — Halaman 1-29",
+      "data": {
+        "label": "Pemrograman Dasar C#",
+        "text": "Tolong jelaskan gambaran umum mengenai seluruh materi Pemrograman Dasar C# mulai dari algoritma, struktur dasar program, hingga penggunaan array dan fungsi secara menyeluruh.",
+        "source": "test-modul — Halaman 1-29"
+      }
+    },
+    {
+      "id": "n2",
+      "parent_id": "n1",
+      "label": "Algoritma & C#",
+      "text": "Bagaimana cara kerja algoritma dalam pemecahan masalah sebelum kita mulai menulis kode program C#?",
+      "source": "test-modul — Halaman 1-2",
+      "data": {
+        "label": "Algoritma & C#",
+        "text": "Bagaimana cara kerja algoritma dalam pemecahan masalah sebelum kita mulai menulis kode program C#?",
+        "source": "test-modul — Halaman 1-2"
+      }
+    },
+    {
+      "id": "n3",
+      "parent_id": "n1",
+      "label": "Struktur Dasar C#",
+      "text": "Apa saja bagian-bagian penting dalam struktur dasar program C#, seperti deklarasi pustaka, class, dan fungsi Main()?",
+      "source": "test-modul — Halaman 3",
+      "data": {
+        "label": "Struktur Dasar C#",
+        "text": "Apa saja bagian-bagian penting dalam struktur dasar program C#, seperti deklarasi pustaka, class, dan fungsi Main()?",
+        "source": "test-modul — Halaman 3"
+      }
+    },
+    {
+      "id": "n4",
+      "parent_id": "n1",
+      "label": "Variabel & Konstanta",
+      "text": "Bagaimana aturan penulisan variabel, penggunaan keyword var secara implisit, serta perbedaan antara variabel dan konstanta di C#?",
+      "source": "test-modul — Halaman 8-9",
+      "data": {
+        "label": "Variabel & Konstanta",
+        "text": "Bagaimana aturan penulisan variabel, penggunaan keyword var secara implisit, serta perbedaan antara variabel dan konstanta di C#?",
+        "source": "test-modul — Halaman 8-9"
+      }
+    },
+    {
+      "id": "n5",
+      "parent_id": "n1",
+      "label": "Array (Larik)",
+      "text": "Bagaimana cara mendeklarasikan dan mengimplementasikan Array untuk menyimpan banyak nilai dalam satu variabel pada C#?",
+      "source": "test-modul — Halaman 25",
+      "data": {
+        "label": "Array (Larik)",
+        "text": "Bagaimana cara mendeklarasikan dan mengimplementasikan Array untuk menyimpan banyak nilai dalam satu variabel pada C#?",
+        "source": "test-modul — Halaman 25"
+      }
+    },
+    {
+      "id": "n6",
+      "parent_id": "n1",
+      "label": "Fungsi (Function)",
+      "text": "Bagaimana struktur dan kegunaan fungsi dalam meringkas kode program agar bisa dipanggil kembali di C#?",
+      "source": "test-modul — Halaman 28-29",
+      "data": {
+        "label": "Fungsi (Function)",
+        "text": "Bagaimana struktur dan kegunaan fungsi dalam meringkas kode program agar bisa dipanggil kembali di C#?",
+        "source": "test-modul — Halaman 28-29"
+      }
+    },
+    {
+      "id": "n7",
+      "parent_id": "n2",
+      "label": "Contoh Algoritma Tukar Gelas",
+      "text": "Berikan contoh konkret dan langkah-langkah detail dari algoritma penukaran isi dua buah gelas (kopi dan susu) seperti yang dijelaskan dalam materi.",
+      "source": "test-modul — Halaman 1",
+      "data": {
+        "label": "Contoh Algoritma Tukar Gelas",
+        "text": "Berikan contoh konkret dan langkah-langkah detail dari algoritma penukaran isi dua buah gelas (kopi dan susu) seperti yang dijelaskan dalam materi.",
+        "source": "test-modul — Halaman 1"
+      }
+    },
+    {
+      "id": "n8",
+      "parent_id": "n3",
+      "label": "Aturan Semicolon (;)",
+      "text": "Mengapa penulisan statement dan ekspresi dalam C# wajib diakhiri dengan titik koma (semicolon) dan apa akibatnya jika terlewat?",
+      "source": "test-modul — Halaman 3",
+      "data": {
+        "label": "Aturan Semicolon (;)",
+        "text": "Mengapa penulisan statement dan ekspresi dalam C# wajib diakhiri dengan titik koma (semicolon) dan apa akibatnya jika terlewat?",
+        "source": "test-modul — Halaman 3"
+      }
+    },
+    {
+      "id": "n9",
+      "parent_id": "n5",
+      "label": "Contoh Kode Array Tinggi Badan",
+      "text": "Berikan contoh kode program perbandingan penyimpanan data tinggi badan tanpa array versus menggunakan array di C#.",
+      "source": "test-modul — Halaman 25",
+      "data": {
+        "label": "Contoh Kode Array Tinggi Badan",
+        "text": "Berikan contoh kode program perbandingan penyimpanan data tinggi badan tanpa array versus menggunakan array di C#.",
+        "source": "test-modul — Halaman 25"
+      }
+    },
+    {
+      "id": "n10",
+      "parent_id": "n4",
+      "label": "Aturan Penamaan Variabel",
+      "text": "Apa saja aturan penting dan best practices dalam memberikan nama variabel di C#, termasuk aturan case sensitivity?",
+      "source": "test-modul — Halaman 8-9",
+      "data": {
+        "label": "Aturan Penamaan Variabel",
+        "text": "Apa saja aturan penting dan best practices dalam memberikan nama variabel di C#, termasuk aturan case sensitivity?",
+        "source": "test-modul — Halaman 8-9"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-n1-n2",
+      "source": "n1",
+      "target": "n2"
+    },
+    {
+      "id": "e-n1-n3",
+      "source": "n1",
+      "target": "n3"
+    },
+    {
+      "id": "e-n1-n4",
+      "source": "n1",
+      "target": "n4"
+    },
+    {
+      "id": "e-n1-n5",
+      "source": "n1",
+      "target": "n5"
+    },
+    {
+      "id": "e-n1-n6",
+      "source": "n1",
+      "target": "n6"
+    },
+    {
+      "id": "e-n2-n7",
+      "source": "n2",
+      "target": "n7"
+    },
+    {
+      "id": "e-n3-n8",
+      "source": "n3",
+      "target": "n8"
+    },
+    {
+      "id": "e-n5-n9",
+      "source": "n5",
+      "target": "n9"
+    },
+    {
+      "id": "e-n4-n10",
+      "source": "n4",
+      "target": "n10"
+    }
+  ],
+  "model": "gemini-3.5-flash-lite"
+}

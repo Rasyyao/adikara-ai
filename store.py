@@ -51,18 +51,46 @@ def index_material(conn: psycopg.Connection, material_id: str, path: str | Path,
     return len(chunks)
 
 
+def _rows_to_chunks(rows: list[tuple]) -> list[dict]:
+    return [
+        {"id": r[0], "title": r[1], "label": r[2], "text": r[3], "score": float(r[4])}
+        for r in rows
+    ]
+
+
 def retrieve(conn: psycopg.Connection, chat_id: str, query: str, k: int = 4,
-             model: str = embed.FINAL_MODEL, endpoint: str = "local") -> list[dict]:
+             model: str = embed.FINAL_MODEL, endpoint: str = "local",
+             min_score: float = 0.0) -> list[dict]:
     """k chunk terdekat, hanya dari materi yang dilampirkan ke chat ini (chat_materials).
     Model harus sama dengan model saat indexing."""
     vec = np.asarray(embed.embed_query(model, query, endpoint), dtype=np.float32)
     rows = conn.execute(
-        """SELECT mc.id::text, mc.label, mc.text, 1 - (mc.embedding <=> %s) AS score
+        """SELECT mc.id::text, m.title, mc.label, mc.text, 1 - (mc.embedding <=> %s) AS score
            FROM chat_materials cm
+           JOIN materials m ON m.id = cm.material_id
            JOIN material_chunks mc ON mc.material_id = cm.material_id
            WHERE cm.chat_id = %s AND mc.embedding_model = %s
+             AND 1 - (mc.embedding <=> %s) >= %s
            ORDER BY mc.embedding <=> %s
            LIMIT %s""",
-        (vec, chat_id, model, vec, k),
+        (vec, chat_id, model, vec, min_score, vec, k),
     ).fetchall()
-    return [{"id": r[0], "label": r[1], "text": r[2], "score": float(r[3])} for r in rows]
+    return _rows_to_chunks(rows)
+
+
+def retrieve_material(conn: psycopg.Connection, material_id: str, query: str, k: int = 4,
+                      model: str = embed.FINAL_MODEL, endpoint: str = "local",
+                      min_score: float = 0.0) -> list[dict]:
+    """k chunk terdekat langsung dari satu materi (tanpa perlu chat_materials)."""
+    vec = np.asarray(embed.embed_query(model, query, endpoint), dtype=np.float32)
+    rows = conn.execute(
+        """SELECT mc.id::text, m.title, mc.label, mc.text, 1 - (mc.embedding <=> %s) AS score
+           FROM material_chunks mc
+           JOIN materials m ON m.id = mc.material_id
+           WHERE mc.material_id = %s AND mc.embedding_model = %s
+             AND 1 - (mc.embedding <=> %s) >= %s
+           ORDER BY mc.embedding <=> %s
+           LIMIT %s""",
+        (vec, material_id, model, vec, min_score, vec, k),
+    ).fetchall()
+    return _rows_to_chunks(rows)

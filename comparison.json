@@ -1,0 +1,37 @@
+{
+  "query": "Apa itu array 2 dimensi?",
+  "target": "material ea88c26e-7880-4373-9e56-e18655a46e7a (test-modul)",
+  "k": 5,
+  "results": [
+    {
+      "model": "deepseek/deepseek-v4.1-flash",
+      "provider": "openrouter",
+      "status": "ok",
+      "seconds": 4.75,
+      "words": 215,
+      "chars": 1547,
+      "answer": "## Array 2 Dimensi\n\n**Pengertian (sesuai materi):**\n\nArray 2 dimensi adalah **bentuk paling sederhana dari array multidimensi**. Disebut demikian karena array 2 dimensi merupakan **gabungan dari 2 array 1 dimensi**.\n\nArray 2 dimensi dapat digambarkan **seperti sebuah tabel data**, yang memiliki **baris (row)** dan **kolom**.\n\n**Contoh yang disebutkan di materi:**\n\nMateri mencontohkan pembuatan array dengan ukuran 2 dimensi **2 x 3** bertipe data integer — artinya array tersebut memiliki 2 baris dan 3 kolom.\n\n**Catatan tentang inisialisasi:**\n\nMateri juga menyebutkan bahwa array multidimensi dapat diinisialisasi dengan cara yang sama seperti array satu dimensi.\n\n---\n\n**Yang tidak dibahas di materi:**\n\nMateri ini tidak memuat penulisan sintaks lengkap array 2 dimensi (kode programnya tidak tercantum dalam teks materi — hanya berupa gambar/contoh hasil). Jadi saya tidak bisa memastikan bentuk penulisan deklarasinya dari materi ini.\n\n*Saran umum (bukan isi materi):* secara umum array 2 dimensi dideklarasikan dengan dua pasang kurung siku, misalnya `int[,] angka = new int[2,3];` dan diakses dengan dua indeks seperti `angka[baris, kolom]`, dengan indeks tetap dimulai dari 0. Silakan sesuaikan dengan bahasa pemrograman yang digunakan di kelas Anda.\n\n**Untuk latihan kelas:** materi menyediakan **Topik 6 – Practice 2**, yaitu menampilkan keseluruhan nilai array **berdasarkan barisnya (row)** dari deklarasi array yang diberikan. Ini bisa langsung dipakai sebagai kegiatan latihan setelah menjelaskan konsep tabel baris–kolom di atas.",
+      "error": null
+    },
+    {
+      "model": "qwen/qwen3.8-flash",
+      "provider": "openrouter",
+      "status": "ok",
+      "seconds": 6.41,
+      "words": 76,
+      "chars": 516,
+      "answer": "Array 2 dimensi adalah bentuk paling sederhana dari array multidimensi.\n\nDalam materi, array 2 dimensi dijelaskan sebagai **gabungan dari dua array 1 dimensi**. Secara visual, array 2 dimensi dapat digambarkan seperti **tabel data yang memiliki beberapa baris dan kolom**.\n\nUntuk guru, penjelasannya bisa dibuat sederhana:\n\n- Jika array 1 dimensi seperti daftar nilai satu kolom.\n- Array 2 dimensi seperti tabel, misalnya 2 baris × 3 kolom.\n- Akses datanya biasanya menggunakan dua indeks, misalnya `[baris][kolom]`.",
+      "error": null
+    },
+    {
+      "model": "gemini-3.5-flash-lite",
+      "provider": "gemini",
+      "status": "ok",
+      "seconds": 1.58,
+      "words": 43,
+      "chars": 307,
+      "answer": "Berdasarkan materi yang tersedia:\n\n**MATERI:**\nArray 2 dimensi adalah bentuk paling sederhana dari array multidimensi, yang merupakan gabungan dari 2 array 1 dimensi. Array 2 dimensi dapat digambarkan seperti sebuah tabel data yang memiliki beberapa baris dan kolom. \n\n*(Sumber: test-modul — Halaman 27-28)*",
+      "error": null
+    }
+  ]
+}
