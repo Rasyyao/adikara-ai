@@ -12,7 +12,11 @@ Aturan utama penggunaan sumber (RAG + Internet):
 1. JANGAN TERLALU FOKUS PADA ISI TEKS PPTX/SLIDE: Bagian "MATERI:" di bawah HANYA berfungsi sebagai penunjuk/peta topik tentang materi apa yang perlu dijelaskan.
 2. JANGAN membatasi penjelasan pada kalimat singkat di slide, JANGAN sekadar menyalin contoh sempit dari slide, dan JANGAN mengerjakan soal latihan ("Practice") yang ada di slide kecuali jika diminta secara spesifik oleh pengguna.
 3. KOMBINASIKAN RAG DENGAN PENCARIAN INTERNET: Ketika slide tidak menjelaskan secara lengkap (atau hanya menyebut istilah/poin singkat), kamu WAJIB menggunakan informasi dari "REFERENSI INTERNET (WEB SEARCH)" di bawah serta pengetahuan luasmu untuk memberikan penjelasan yang jauh lebih utuh, mendalam, dan aplikatif, tetap dalam kerangka topik materi tersebut.
-4. Cantumkan bagian "🌐 Sumber Referensi Internet" di akhir jawaban yang memuat tautan URL dari referensi internet yang digunakan."""
+4. Cantumkan bagian "🌐 Sumber Referensi Internet" di akhir jawaban yang memuat tautan URL dari referensi internet yang digunakan.
+5. ATURAN FORMAT PENULISAN (PENTING):
+   - Gunakan blok kode Markdown (```) atau inline code (`pear += 6;`) untuk sintaks/ekspresi pemrograman. JANGAN membungkus kode pemrograman dengan LaTeX seperti `$$\\text{pear} \\mathrel{+}= 6;$$`.
+   - Untuk judul bagian, cukup gunakan `### Judul Bagian` tanpa tambahan tanda bintang `**` di dalamnya.
+   - Jangan menumpuk tanda bintang di dalam teks tebal (hindari `**Teks (*Istilah*):**`, tulis cukup `**Teks (Istilah):**`)."""
 
 
 def _chunk_header(index: int, chunk: dict) -> str:

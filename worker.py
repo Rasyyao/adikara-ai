@@ -1,13 +1,11 @@
-"""Pekerja antrean: mendengarkan NOTIFY 'jobs', mengambil job EXTRACT, mengindeks materi.
 
-Alur: API menyisipkan baris jobs (queued) lalu `NOTIFY jobs`. Pekerja bangun, mengklaim satu job dengan
-FOR UPDATE SKIP LOCKED (aman dijalankan lebih dari satu pekerja), dan memprosesnya. NOTIFY hilang bila pekerja
-mati, jadi setiap bangun (dan tiap SWEEP_SECONDS) pekerja menguras semua job yang menunggu.
-"""
+import contextlib
+import contextvars
 import json
 import logging
 import os
 import tempfile
+import time
 
 import embed
 import llm
@@ -17,6 +15,36 @@ import store
 from extract import ExtractionError
 
 log = logging.getLogger("worker")
+
+# Tag job yang sedang diproses; ditempelkan ke setiap baris log agar satu job mudah dilacak dengan grep.
+_job_tag = contextvars.ContextVar("job_tag", default="-")
+
+
+class _JobTagFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.job = _job_tag.get()
+        return True
+
+
+def setup_logging(level: int = logging.INFO) -> None:
+    handler = logging.StreamHandler()
+    handler.addFilter(_JobTagFilter())
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)-5s [%(job)-22s] %(message)s", "%H:%M:%S"))
+    logging.basicConfig(level=level, handlers=[handler], force=True)
+
+
+@contextlib.contextmanager
+def _step(name: str, **info):
+    """Catat satu tahap job beserta durasinya, mis. `ambil konteks (5 potongan) 0.42s`."""
+    extra = " ".join(f"{k}={v}" for k, v in info.items())
+    log.info("  > %s%s", name, f" ({extra})" if extra else "")
+    start = time.perf_counter()
+    try:
+        yield
+    except Exception:
+        log.warning("  x %s gagal setelah %.2fs", name, time.perf_counter() - start)
+        raise
+    log.info("  < %s selesai %.2fs", name, time.perf_counter() - start)
 
 CHANNEL = "jobs"
 SWEEP_SECONDS = 30
@@ -76,8 +104,10 @@ def _process_extract(conn, material_id: str, model: str, endpoint: str) -> None:
     if row is None:
         raise store.StoreError("Materi sudah dihapus.")
     with tempfile.TemporaryDirectory(prefix="adikara-") as tmp:
-        path = storage.download(row[0], tmp)
-        store.index_material(conn, material_id, path, model, endpoint)
+        with _step("unduh berkas", file=row[0]):
+            path = storage.download(row[0], tmp)
+        with _step("baca, pecah, dan embed", model=model):
+            store.index_material(conn, material_id, path, model, endpoint)
 
 
 HISTORY_MESSAGES = 12     # pesan terakhir yang dikirim ke model
@@ -117,6 +147,7 @@ def _process_chat_reply(conn, payload: dict, embed_model: str, embed_endpoint: s
         raise store.StoreError("Pesan sudah dihapus.")
     chat_model, chat_endpoint = _chat_config()
     if chat_model is None:
+        log.warning("  ! CHAT_MODEL belum diatur, balasan berisi pesan konfigurasi")
         _save_reply(conn, chat_id, NO_MODEL)
         return
 
@@ -126,17 +157,53 @@ def _process_chat_reply(conn, payload: dict, embed_model: str, embed_endpoint: s
            ORDER BY created_at DESC, id DESC LIMIT %s""",
         (chat_id, row[0], message_id, HISTORY_MESSAGES)).fetchall())]
     failed = [{"title": r[0], "error": r[1]} for r in conn.execute(
-        """SELECT m.title, m.error FROM chat_materials cm JOIN materials m ON m.id = cm.material_id
-           WHERE cm.chat_id = %s AND m.status = 'failed'""", (chat_id,)).fetchall()]
+        """SELECT DISTINCT ON (m.title) m.title, m.error
+           FROM chat_materials cm JOIN materials m ON m.id = cm.material_id
+           WHERE cm.chat_id = %s AND m.status = 'failed'
+             AND NOT EXISTS (
+                 SELECT 1 FROM chat_materials cm2
+                 JOIN materials m2 ON m2.id = cm2.material_id
+                 WHERE cm2.chat_id = cm.chat_id
+                   AND m2.title = m.title
+                   AND m2.status = 'extracted'
+             )
+           ORDER BY m.title, m.created_at DESC""", (chat_id,)).fetchall()]
     ready = conn.execute(
         """SELECT 1 FROM chat_materials cm JOIN materials m ON m.id = cm.material_id
            WHERE cm.chat_id = %s AND m.status = 'extracted' LIMIT 1""", (chat_id,)).fetchone()
-    chunks = (store.retrieve(conn, chat_id, history[-1]["content"], CONTEXT_CHUNKS, embed_model, embed_endpoint)
-              if ready else [])
-    web_results = prompt.search_web_context(history[-1]["content"]) if chat_model != "fake-chat" else []
+    log.info("  chat=%s riwayat=%d berkas_gagal=%d berkas_siap=%s", chat_id, len(history), len(failed), bool(ready))
+    chunks = []
+    if ready:
+        with _step("ambil konteks", top=CONTEXT_CHUNKS):
+            chunks = store.retrieve(conn, chat_id, history[-1]["content"], CONTEXT_CHUNKS, embed_model, embed_endpoint)
+        log.info("  konteks: %d potongan", len(chunks))
+    web_results = []
+    if chat_model != "fake-chat":
+        with _step("cari web"):
+            web_results = prompt.search_web_context(history[-1]["content"])
+        log.info("  web: %d hasil", len(web_results))
 
-    answer = llm.chat(chat_model, prompt.build_messages(history, chunks, failed, web_results=web_results), chat_endpoint)
+    user_query = history[-1]["content"]
+    is_mindmap_req = chat_model != "fake-chat" and any(
+        kw in user_query.lower() for kw in ("mindmap", "mind map", "peta konsep")
+    )
+
+    with _step("panggil LLM", model=chat_model, endpoint=chat_endpoint):
+        if is_mindmap_req:
+            import mindmap
+            mm_data = mindmap.generate_mindmap(
+                user_query,
+                chunks,
+                model=chat_model,
+                endpoint=chat_endpoint,
+                web_results=web_results,
+            )
+            answer = "```mindmap\n" + json.dumps(mm_data, ensure_ascii=False, indent=2) + "\n```"
+        else:
+            answer = llm.chat(chat_model, prompt.build_messages(history, chunks, failed, web_results=web_results),
+                              chat_endpoint)
     _save_reply(conn, chat_id, answer, [c["id"] for c in chunks])
+    log.info("  balasan disimpan (%d karakter, %d sumber)", len(answer), len(chunks))
 
 
 def process_one(conn, model: str = embed.FINAL_MODEL, endpoint: str = "local") -> bool:
@@ -146,31 +213,57 @@ def process_one(conn, model: str = embed.FINAL_MODEL, endpoint: str = "local") -
         return False
     payload = job["payload"]
     material_id = payload.get("materialId") if job["type"] == "extract" else None
-    log.info("job %s (%s) percobaan %d", job["id"], job["type"], job["attempts"])
+    token = _job_tag.set(f'{job["id"][:8]} {job["type"]} #{job["attempts"]}')
+    start = time.perf_counter()
+    log.info("MULAI %s", {k: v for k, v in payload.items()})
     try:
-        if job["type"] == "chat_reply":
-            _process_chat_reply(conn, payload, model, endpoint)
+        try:
+            if job["type"] == "chat_reply":
+                _process_chat_reply(conn, payload, model, endpoint)
+            else:
+                if not material_id:
+                    raise store.StoreError("Job tidak memuat materialId.")
+                _process_extract(conn, material_id, model, endpoint)
+        except FINAL_ERRORS as e:
+            log.error("GAGAL (permanen) %s: %s", type(e).__name__, e)
+            _fail(conn, job, material_id, str(e))
+        except SERVICE_ERRORS as e:
+            log.error("GAGAL (layanan AI) %s: %s", type(e).__name__, e)
+            _fail(conn, job, material_id, SERVICE_DOWN, detail=str(e))
+        except Exception:
+            log.exception("GAGAL (tak terduga), percobaan %d/%d", job["attempts"], MAX_ATTEMPTS)
+            if job["attempts"] >= MAX_ATTEMPTS:
+                _fail(conn, job, material_id, "Berkas tidak bisa diproses. Coba unggah ulang."
+                      if material_id else REPLY_FAILED)
+            else:
+                log.warning("diantrekan ulang, coba lagi setelah %s", RETRY_AFTER)
+                _finish(conn, job["id"], "queued", error="percobaan gagal, akan diulang")
         else:
-            if not material_id:
-                raise store.StoreError("Job tidak memuat materialId.")
-            _process_extract(conn, material_id, model, endpoint)
-    except FINAL_ERRORS as e:
-        _fail(conn, job, material_id, str(e))
-    except SERVICE_ERRORS as e:
-        log.error("job %s: layanan AI gagal: %s", job["id"], e)
-        _fail(conn, job, material_id, SERVICE_DOWN, detail=str(e))
-    except Exception:
-        log.exception("job %s gagal tak terduga", job["id"])
-        if job["attempts"] >= MAX_ATTEMPTS:
-            _fail(conn, job, material_id, "Berkas tidak bisa diproses. Coba unggah ulang."
-                  if material_id else REPLY_FAILED)
-        else:
-            _finish(conn, job["id"], "queued", error="percobaan gagal, akan diulang")
-    else:
-        if material_id:
-            conn.execute("UPDATE materials SET status = 'extracted', error = NULL WHERE id = %s", (material_id,))
-        _finish(conn, job["id"], "done", result_ref=material_id)
+            if material_id:
+                conn.execute("UPDATE materials SET status = 'extracted', error = NULL WHERE id = %s", (material_id,))
+            _finish(conn, job["id"], "done", result_ref=material_id)
+            _notify_chat(conn, job, material_id)
+            log.info("SELESAI dalam %.2fs", time.perf_counter() - start)
+    finally:
+        _job_tag.reset(token)
     return True
+
+
+def _notify_chat(conn, job: dict, material_id: str | None) -> None:
+    """Beri tahu API lewat LISTEN/NOTIFY bahwa status berkas atau balasan chat telah diperbarui."""
+    try:
+        chat_id = job["payload"].get("chatId")
+        if chat_id:
+            conn.execute("SELECT pg_notify('chat_events', %s)", (str(chat_id),))
+        elif material_id:
+            rows = conn.execute(
+                "SELECT chat_id::text FROM chat_materials WHERE material_id = %s",
+                (material_id,),
+            ).fetchall()
+            for (cid,) in rows:
+                conn.execute("SELECT pg_notify('chat_events', %s)", (cid,))
+    except Exception:
+        pass
 
 
 def _fail(conn, job: dict, material_id: str | None, message: str, detail: str | None = None) -> None:
@@ -182,6 +275,7 @@ def _fail(conn, job: dict, material_id: str | None, message: str, detail: str | 
         # nobody is waiting on the job itself, so the teacher must find the failure in the chat
         _save_reply(conn, job["payload"]["chatId"], REPLY_FAILED)
     _finish(conn, job["id"], "failed", error=detail or message)
+    _notify_chat(conn, job, material_id)
 
 
 def drain(conn, model: str = embed.FINAL_MODEL, endpoint: str = "local") -> int:
@@ -195,7 +289,7 @@ def run(model: str = embed.FINAL_MODEL, endpoint: str = "local") -> None:
     listener = store.connect(autocommit=True)
     worker = store.connect(autocommit=True)
     listener.execute(f"LISTEN {CHANNEL}")
-    log.info("menunggu job (model %s)", model)
+    log.info("pekerja siap, menunggu job (model embed %s)", model)
     drain(worker, model, endpoint)                       # job yang menunggu saat pekerja mati
     while True:
         for _ in listener.notifies(timeout=SWEEP_SECONDS, stop_after=1):
@@ -204,5 +298,5 @@ def run(model: str = embed.FINAL_MODEL, endpoint: str = "local") -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    setup_logging()
     run()
